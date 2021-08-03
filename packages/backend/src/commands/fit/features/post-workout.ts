@@ -2,7 +2,8 @@ import { DateTime, Duration } from 'luxon';
 import { Just, Maybe, Nothing } from 'purify-ts';
 import { just, match } from 'variant';
 
-import { Instance, EmbedField, MessageEmbed } from '@sjbha/app';
+import { Instance } from '@sjbha/app';
+import { EmbedField, MessageEmbed } from 'discord.js';
 import { channels } from '@sjbha/config';
 
 import { 
@@ -93,7 +94,7 @@ export const postWorkout = async (stravaId: number, activityId: number) : Promis
 
   const displayColor = member.mapOrDefault (m => m.displayColor, 0xffffff);
   const nickname = member.mapOrDefault (m => m.nickname, 'Unknown');
-  const avatar = member.mapOrDefault (m => m.avatar, 'https://discordapp.com/assets/322c936a8c8be1b803cd94861bdfa868.png');
+  const avatar = member.mapOrDefault (m => m.user.displayAvatarURL (), 'https://discordapp.com/assets/322c936a8c8be1b803cd94861bdfa868.png');
 
   // Create an embed that shows the name of the activity,
   // Some highlighted stats from the recording

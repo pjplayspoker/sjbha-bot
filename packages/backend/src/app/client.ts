@@ -1,7 +1,5 @@
 import { DISCORD_TOKEN, SERVER_ID } from './env';
-import * as Discord from 'discord.js';
-
-import { Member, Message, TextChannel } from './discord-js';
+import { Client, Message, TextChannel, GuildMember } from 'discord.js';
 
 import { channels } from '../config';
 import * as env from './env';
@@ -9,7 +7,7 @@ import { Maybe, Just, Nothing } from 'purify-ts';
 
 // Connect
 
-const client = new Discord.Client ();
+const client = new Client ();
 
 client.on ('ready', () => {
   console.log (`Bastion connected as '${client.user?.tag}' v${env.VERSION}`);
@@ -21,11 +19,10 @@ client.on ('ready', () => {
   }
 });
 
-client.on ('message', (msg: Discord.Message) => {
+client.on ('message', (msg: Message) => {
   if (msg.author.bot) return;
 
-  const message = Message (msg);
-  [...messageHandlers].forEach (f => f (message));
+  [...messageHandlers].forEach (f => f (msg));
 });
 
 client.login (DISCORD_TOKEN);
@@ -81,23 +78,23 @@ export const onMessage = (...middleware: MessageMiddleware[]) : UnsubscribeHandl
 
 // Instance Utilities
 export const Instance = {
-  fetchMember: async (discordId: string) : Promise<Maybe<Member>> => {
+  fetchMember: async (discordId: string) : Promise<Maybe<GuildMember>> => {
     try {
       const guild = await client.guilds.fetch (SERVER_ID);
       const member = await guild.members.fetch (discordId);
 
-      return Just (Member (member));
+      return Just (member);
     }
     catch (e) {
       return Nothing;
     }
   },
 
-  fetchMembers: async (discordIds: string[]) : Promise<Member[]> => {
+  fetchMembers: async (discordIds: string[]) : Promise<GuildMember[]> => {
     const guild = await client.guilds.fetch (SERVER_ID);
     const members = await guild.members.fetch ({ user: discordIds });
 
-    return members.map (Member);
+    return members.map (i => i);
   }, 
 
   fetchChannel: async (channelId: string) : Promise<TextChannel> => {
@@ -107,13 +104,13 @@ export const Instance = {
       throw new Error ('Channel is not of type \'dm\' or \'text');
     }
 
-    return TextChannel (<Discord.TextChannel>channel);
+    return <TextChannel>channel;
   },
 
   fetchMessage: async (channelId: string, messageId: string) : Promise<Message> => {
     const channel = await client.channels.fetch (channelId);
-    const message = await (<Discord.TextChannel>channel).messages.fetch (messageId);
+    const message = await (<TextChannel>channel).messages.fetch (messageId);
 
-    return Message (message);
+    return message;
   }
 }

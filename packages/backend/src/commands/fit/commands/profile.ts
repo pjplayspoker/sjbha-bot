@@ -1,7 +1,8 @@
-import { MessageHandler, MessageEmbed } from '@sjbha/app';
+import { MessageHandler } from '@sjbha/app';
+import { MessageEmbed } from 'discord.js';
 import { DateTime, Interval } from 'luxon';
 import fromNow from 'fromnow';
-import { Just } from 'purify-ts';
+import { Just, Maybe } from 'purify-ts';
 
 import * as User from '../db/user';
 import { Workouts, sumExp } from '../db/workout';
@@ -18,12 +19,13 @@ export const profile : MessageHandler = async message => {
     return;
   }
 
-  const username = message.member.mapOrDefault (m => m.nickname, message.author.username);
-  const displayColor = message.member.mapOrDefault (m => m.displayColor, 0xcccccc);
+  const member = Maybe.fromNullable (message.member);
+  const username = member.mapOrDefault (m => m.nickname, message.author.username);
+  const displayColor = member.mapOrDefault (m => m.displayColor, 0xcccccc);
 
   const embed = new MessageEmbed ();
   embed.setColor (displayColor);
-  embed.setAuthor (username, message.author.avatar);
+  embed.setAuthor (username, message.author.displayAvatarURL ());
 
   // User's current rank name
   const rank = getRank (user.fitScore);

@@ -1,4 +1,5 @@
-import { MessageHandler, MessageEmbed } from '@sjbha/app';
+import { MessageHandler } from '@sjbha/app';
+import { MessageEmbed } from 'discord.js';
 import { DateTime, Interval } from 'luxon';
 import * as R from 'ramda';
 import { isOfVariant, isType, lookup, variantList } from 'variant';

@@ -1,4 +1,5 @@
-import { Instance, Member } from '@sjbha/app';
+import { Instance } from '@sjbha/app';
+import { GuildMember } from 'discord.js';
 import { Maybe } from 'purify-ts';
 
 /**
@@ -6,28 +7,29 @@ import { Maybe } from 'purify-ts';
  * and then provides a lookup table for their nicknames
  */
 export class MemberList {
-  private memberById = new Map<string, Member> ();
+  private memberById = new Map<string, GuildMember> ();
 
-  private constructor (members: Member[]) {
+  private constructor (members: GuildMember[]) {
     members.forEach (member => {
       this.memberById.set (member.id, member);
     });
   }
 
-  get = (discordId: string) : Maybe<Member> => 
+  get = (discordId: string) : Maybe<GuildMember> => 
     Maybe.fromNullable (this.memberById.get (discordId));
 
   nickname = (discordId: string, orDefault = 'unknown') : string =>
     Maybe
       .fromNullable (this.memberById.get (discordId))
-      .mapOrDefault (m => m.nickname, orDefault);
+      .chainNullable (m => m.nickname)
+      .orDefault (orDefault);
 
   static fetch = async (discordIds: string[]) : Promise<MemberList> => {
     const members = await Instance.fetchMembers (discordIds).catch (e => {
       console.error ('Failed to fetch member list');
       console.error (e);
 
-      return [] as Member[];
+      return [] as GuildMember[];
     });
 
     return new MemberList (members);

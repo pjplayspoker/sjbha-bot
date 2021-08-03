@@ -1,7 +1,8 @@
 import { variantList,TypeNames, VariantOf, match } from 'variant';
 import * as yup from 'yup';
 
-import { Message, MessageHandler } from '@sjbha/app';
+import { MessageHandler } from '@sjbha/app';
+import { Message } from 'discord.js';
 import { Interaction } from '@sjbha/utils/interaction';
 import { MessageBuilder, inlineCode } from '@sjbha/utils/string-formatting';
 

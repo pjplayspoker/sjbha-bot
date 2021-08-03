@@ -1,5 +1,5 @@
 import { MessageHandler } from '@sjbha/app';
-import { Left, Right } from 'purify-ts';
+import { Maybe, Left, Right } from 'purify-ts';
 import { Subscriptions } from '../db/subscription';
 
 export const subscribe : MessageHandler = async message => {
@@ -12,9 +12,10 @@ export const subscribe : MessageHandler = async message => {
     return;
   }
 
-  const member = message.member
+  const member = Maybe
+    .fromNullable (message.member)
     .toEither ('You cannot subscribe in DMs')
-    .chain (m => m.roles.has (sub.id) 
+    .chain (m => m.roles.cache.has (sub.id) 
       ? Left ('You are already subscribed to ' + sub.name)
       : Right (m)
     );

@@ -1,7 +1,12 @@
-import { onMessage, Instance, Message } from '@sjbha/app';
+import { onMessage, Instance } from '@sjbha/app';
+import { Message } from 'discord.js';
 import { MessageBuilder } from './string-formatting';
 import { Maybe } from 'purify-ts';
 
+/**
+ * Manager for an interactive input with the user,
+ * where the bot will ask a question and wait for a response
+ */
 export namespace Interaction {
   export type MapMessage<T> = (message: Message) => T;
 

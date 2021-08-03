@@ -2,7 +2,7 @@ import { MessageHandler } from '@sjbha/app';
 import { Subscriptions } from '../db/subscription';
 
 export const add : MessageHandler = async message => {
-  const role = message.mentions.roles[0];
+  const [role] = [...message.mentions.roles.values ()];
 
   if (!role) {
     message.reply ('Failed to add tag: Missing role to add. Usage: `!subscribe add @role`');
