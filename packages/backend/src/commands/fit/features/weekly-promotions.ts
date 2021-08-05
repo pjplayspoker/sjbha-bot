@@ -1,7 +1,5 @@
 import * as R from 'ramda';
 import { MessageEmbed } from 'discord.js';
-import { DateTime } from 'luxon';
-import schedule from 'node-schedule';
 
 import { Instance } from '@sjbha/app';
 import { channels, roles } from '@sjbha/config';
@@ -16,18 +14,6 @@ import { getRank } from '../common/ranks';
 const MINIMUM_EXP_FOR_PROMOTION = 150;
 const MAX_FITSCORE = 100;
 
-/** The time when the weekly update gets posted */
-const weekly_post_time = DateTime
-  .local ()
-  .set ({ weekday: 1, hour: 8, minute: 0, second: 0 })
-  .toLocal ();
-
-schedule.scheduleJob ({
-  dayOfWeek: weekly_post_time.weekday,
-  hour:      weekly_post_time.hour,
-  minute:    weekly_post_time.minute,
-  second:    weekly_post_time.second
-}, () => { runPromotions () });
 
 /**
  * Once a week we tally up how much exp a user's gained in a week,

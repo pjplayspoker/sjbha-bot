@@ -5,10 +5,11 @@ import { DateTime } from 'luxon';
 const MAX_DESCRIPTION_SIZE = 2000;
 
 /**
- * User options when creating a meetup
+ * The options that a user passes in when creating or editing a meetup
  */
 export const MeetupOptions = z.object ({
-  title: z.string (),
+  title: z.string ()
+    .transform (t => t.trim ()),
 
   description: z.string ()
     .refine (d => d.length <= MAX_DESCRIPTION_SIZE, d => ({ message: `Description is too long. Max limit is ${MAX_DESCRIPTION_SIZE}, your description is ${d.length}` })),

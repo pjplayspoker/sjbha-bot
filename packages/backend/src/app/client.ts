@@ -4,10 +4,13 @@ import { Client, Message, TextChannel, GuildMember } from 'discord.js';
 import { channels } from '../config';
 import * as env from './env';
 import { Maybe, Just, Nothing } from 'purify-ts';
+import events from './events';
 
 // Connect
 
-const client = new Client ();
+const client = new Client ({
+  partials: ['USER', 'MESSAGE', 'CHANNEL', 'REACTION']
+});
 
 client.on ('ready', () => {
   console.log (`Bastion connected as '${client.user?.tag}' v${env.VERSION}`);
@@ -17,26 +20,23 @@ client.on ('ready', () => {
       .fetchChannel (channels.bot_admin)
       .then (c => c.send (`🤖 BoredBot Online! v${env.VERSION}`));
   }
-});
 
-client.on ('message', (msg: Message) => {
-  if (msg.author.bot) return;
-
-  [...messageHandlers].forEach (f => f (msg));
+  events.emit ('bot:connect');
 });
 
 client.login (DISCORD_TOKEN);
 
-// Message Event
+client.on ('message', (msg: Message) => {
+  if (msg.author.bot) return;
+
+  events.emit ('message', msg);
+});
+
 
 export type MessageHandler = (message: Message) => void;
-
-const messageHandlers : Set<MessageHandler> = new Set ();
-
+export type Unsubscribe = () => void;
 export type NextFn = () => void;
 export type MessageMiddleware = (message: Message, next: NextFn) => void;
-
-export type UnsubscribeHandler = () => void;
 
 /**
  * Compose a series middleware together to create a command.
@@ -68,15 +68,15 @@ export const compose = (...middlewares: MessageMiddleware[]) : MessageHandler =>
  * 
  * todo: explain middleware
  */
-export const onMessage = (...middleware: MessageMiddleware[]) : UnsubscribeHandler => {
+export const onMessage = (...middleware: MessageMiddleware[]) : Unsubscribe => {
   const handler = compose (...middleware);
+  events.on ('message', handler);
 
-  messageHandlers.add (handler);
-
-  return () => messageHandlers.delete (handler);
+  return () => events.off ('message', handler);
 }
 
 // Instance Utilities
+
 export const Instance = {
   fetchMember: async (discordId: string) : Promise<Maybe<GuildMember>> => {
     try {

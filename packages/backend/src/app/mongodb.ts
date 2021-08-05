@@ -1,5 +1,6 @@
 import { Collection, MongoClient } from 'mongodb';
 import { MONGO_URL } from './env';
+import events from './events';
 
 type Ref = { instance?: MongoClient; };
 const client: Ref = {};
@@ -7,8 +8,13 @@ const client: Ref = {};
 MongoClient
   .connect (MONGO_URL, { useUnifiedTopology: true })
   .then (r => { client.instance = r; })
-  .then (_ => { console.log ('Connected to mongodb'); })
-  .catch (_ => { console.warn ('MongoDB failed to connect, some things may not work.\n(Make sure the db is running with \'npm run db\') ', MONGO_URL) })
+  .then (_ => { 
+    console.log ('Connected to mongodb'); 
+    events.emit ('db:connect');
+  })
+  .catch (_ => { 
+    console.warn ('MongoDB failed to connect, some things may not work.\n(Make sure the db is running with \'npm run db\') ', MONGO_URL)
+  });
 
 export function db<T>(name: string) {
   return () : Collection<T> => {

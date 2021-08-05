@@ -1,13 +1,10 @@
 import { MessageHandler } from '@sjbha/app';
-import { MessageEmbed } from 'discord.js';
 import parseMessageOptions from '@sjbha/utils/message-parser';
 import { formatErrors } from '@sjbha/utils/zod';
-import { MeetupOptions } from '../common/MeetupOptions';
 
-const emoji = {
-  rsvp:  '✅',
-  maybe: '🤔'
-};
+import { MeetupOptions } from '../core/MeetupOptions';
+import Announcement from '../core/Announcement';
+
 
 /**
  * Creates a new meetup
@@ -23,27 +20,10 @@ export const create : MessageHandler = async (message) => {
     return;
   }
 
-  const options = input.data;
-  const embed = new MessageEmbed ();
-
-  embed.setTitle (options.title);
-  embed.setDescription (options.description);
-
-  const date = options.date.toLocaleString ({ 
-    weekday: 'short', 
-    month:   'short', 
-    day:     '2-digit', 
-    hour:    '2-digit', 
-    minute:  '2-digit' 
+  await Announcement.post (message.channel.id, {
+    title:       input.data.title,
+    description: input.data.description,
+    timestamp:   input.data.date.toISO (),
+    organizerId: message.author.id
   });
-
-  embed.addField ('Time', date, true);
-
-  embed.addField (`${emoji.rsvp} Yes`, 'some list', true);
-  embed.addField (`${emoji.maybe} Maybe`, 'some list', true);
-
-  // Post the announcement
-  const announcement = await message.channel.send (embed);
-  await announcement.react (emoji.rsvp);
-  await announcement.react (emoji.maybe);
 }

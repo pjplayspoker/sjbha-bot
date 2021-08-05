@@ -1,4 +1,5 @@
-import { MessageHandler, MessageEmbed } from '@sjbha/app';
+import { MessageHandler } from '@sjbha/app';
+import { MessageEmbed } from 'discord.js';
 import { lookup } from 'variant';
 
 import * as Config from './config';

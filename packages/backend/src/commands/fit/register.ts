@@ -1,15 +1,19 @@
-import { onMessage, router, compose } from '@sjbha/app';
+import { onMessage, router } from '@sjbha/app';
 import { channels } from '@sjbha/config';
 import { dmsOnly, messageEquals, reply, restrictToChannel, routes, startsWith } from '@sjbha/utils/message-middleware';
+import schedule from 'node-schedule';
+import { DateTime } from 'luxon';
+
 
 // Bot
+
 
 import { auth } from './commands/auth';
 import { help } from './commands/help';
 import { profile } from './commands/profile';
 import { balance } from './commands/balance';
 import { leaders } from './commands/leaders';
-import { settings } from './commands/settings'
+import { settings } from './commands/settings';
 
 onMessage (
   startsWith ('!fit'),
@@ -31,7 +35,9 @@ onMessage (
   settings
 );
 
+
 // Admin Commands
+
 
 import { post } from './admin/post';
 import { list } from './admin/list';
@@ -49,10 +55,26 @@ onMessage (
   })
 );
 
+
 // Web API
+
 
 import { authAccept } from './routes/auth-accept';
 import { newWorkout } from './routes/activity-webhook';
 
 router.get ('/fit/accept', authAccept);
 router.post ('/fit/api/webhook', newWorkout);
+
+
+// Schedule
+
+import { runPromotions } from './features/weekly-promotions';
+
+const time = DateTime
+  .fromObject ({ weekday: 1, hour: 8 })
+  .toLocal ();
+
+schedule.scheduleJob ({
+  dayOfWeek: time.weekday,
+  hour:      time.hour
+}, () => { runPromotions () });
