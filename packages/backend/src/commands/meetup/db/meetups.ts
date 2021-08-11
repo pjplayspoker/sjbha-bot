@@ -15,8 +15,15 @@ export type MeetupProps = {
   description: string;
   timestamp: string;
   organizerId: string;
+  location?: Location;
+  links: { name?: string; url: string; }[];
 };
 
+export type Location = { 
+  type: 'ADDRESS' | 'PRIVATE' | 'VOICE';
+  value: string;
+  comments?: string 
+}
 
 export const AnnouncementState = variantModule ({
   inChannel:     fields<{ channelId: string, messageId: string }> (),
@@ -80,8 +87,17 @@ const migrations = {
     title:       model.options.name,
     description: model.options.description,
     organizerId: model.userID,
+    
     // TODO: MAKE SURE TIME IS FORMATTED properly
-    timestamp:   model.timestamp,
+    timestamp: model.timestamp,
+    
+    location: (model.options.location)
+      ? { type: 'ADDRESS', value: model.options.location }
+      : undefined,
+      
+    links: (model.options.url)
+      ? [{ url: model.options.url }]
+      : [],
     
     announcement: AnnouncementState.announcements ({
       announcementId: model.info_id,

@@ -8,7 +8,14 @@
     "@typescript-eslint/parser": "^4.29.0",
     "eslint": "^7.32.0",
     "eslint-plugin-no-autofix": "^1.1.2",
-    "typescript": "^4.3.5"
+    "sass": "^1.37.5",
+    "sass-loader": "^12.1.0",
+    "svelte-preprocess": "^4.7.4",
+    "typescript": "^4.3.5",
+    "webpack": "^5.49.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.4",
+    "svelte": "^3.42.1"
+  }
 }

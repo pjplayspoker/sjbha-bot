@@ -1,7 +1,8 @@
 import { MessageHandler } from '@sjbha/app';
-import parseMessageOptions from '@sjbha/utils/message-parser';
 import { formatErrors } from '@sjbha/utils/zod';
+import YAML from 'yaml';
 
+import { Location, MeetupProps } from '../db/meetups';
 import { MeetupOptions } from '../core/MeetupOptions';
 import Announcement from '../core/Announcement';
 
@@ -10,7 +11,9 @@ import Announcement from '../core/Announcement';
  * Creates a new meetup
  */
 export const create : MessageHandler = async (message) => {
-  const messageOptions = parseMessageOptions (message.content);
+  const options = message.content.replace ('!meetup create', '');
+  const messageOptions = YAML.parse (options);
+  
   const input = MeetupOptions.safeParse (messageOptions);
 
   if (!input.success) {
@@ -20,10 +23,30 @@ export const create : MessageHandler = async (message) => {
     return;
   }
 
-  await Announcement.post (message.channel.id, {
+  const meetup : MeetupProps = {
     title:       input.data.title,
     description: input.data.description,
     timestamp:   input.data.date.toISO (),
-    organizerId: message.author.id
-  });
+    organizerId: message.author.id,
+    links:       input.data.links || []
+  };
+
+  if (input.data.location_type) {
+    const type : Record<string, Location['type']> = {
+      'address': 'ADDRESS',
+      'private': 'PRIVATE',
+      'voice':   'VOICE'
+    };
+
+    meetup.location = {
+      type:  type[input.data.location_type] || 'NONE',
+      value: input.data.location || 'Unknown'
+    };
+
+    if (input.data.location_comments)
+      meetup.location.comments = input.data.location_comments;
+  }
+
+
+  await Announcement.post (message.channel.id, meetup);
 }

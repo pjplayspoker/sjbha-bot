@@ -42,13 +42,21 @@ export default class Announcement {
       .mapValues (u => u.nickname)
       .array ();
 
-    embed.addRsvpList (attending, `${this.rsvps.emojis.attending} Yes`);
+    const attendingCount = attending.length
+      ? `(${attending.length})`
+      : '';
+
+    embed.addRsvpList (attending, `${this.rsvps.emojis.attending} Going! ${attendingCount}`);
 
     const maybes = this.rsvps.maybes
       .mapValues (u => u.nickname)
       .array ();
 
-    embed.addRsvpList (maybes, `${this.rsvps.emojis.maybe} Maybe`);
+    const maybeCount = maybes.length
+      ? `(${maybes.length})`
+      : '';
+
+    embed.addRsvpList (maybes, `${this.rsvps.emojis.maybe} Maybe ${maybeCount}`);
     
     await this.message.edit (embed);
   }
@@ -65,7 +73,7 @@ export default class Announcement {
    * @param channelId The channel the meetup should be posted in
    * @param props The options for creating a meetup
    */
-  static async post(channelId: string, props: MeetupProps) : Promise<Announcement> {
+  static async post (channelId: string, props: MeetupProps) : Promise<Announcement> {
     const message = await Instance
       .fetchChannel (channelId)
       .then (c => c.send (new AnnouncementEmbed (props).embed));
@@ -76,6 +84,8 @@ export default class Announcement {
     const announcement = new Announcement (meetup, rsvps, message);
     Announcement.cache.set (announcement.id, announcement);
 
+    console.log ('posted', props);
+    
     return announcement;
   }
 
