@@ -1,4 +1,6 @@
-<script lang='ts'>
+<!-- TODO-->
+
+<!-- <script lang='ts'>
   // import { Location, state } from '../store';
   import Legend from '../components/Legend.svelte';
 
@@ -14,4 +16,4 @@
 </section>
 
 <style>
-</style>
+</style> -->

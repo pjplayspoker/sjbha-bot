@@ -5,6 +5,8 @@
 
   export let icon = '';
 
+  export let title = '';
+
   export let closeable = false;
 
   const dispatch = createEventDispatcher ();
@@ -13,10 +15,11 @@
   const close = () => dispatch('close');
 </script>
 
+
 <legend class:muted={!active}>
   <button class='toggle' disabled={active} on:click|preventDefault={click}>
     <i class='material-icons'>{icon}</i>
-    <slot/>
+    {title}
   </button>
 
   {#if active && closeable}
@@ -25,6 +28,7 @@
     </button>
   {/if}
 </legend>
+
 
 <style>
   legend {
@@ -60,16 +64,4 @@
     cursor: default;
     opacity: 1;
   }
-/* 
-    &.muted {
-      color: $muted;
-      font-weight: $muted-weight;
-    }
-
-    &::focus {
-      text-decoration: none;
-      outline: 1px solid $primary;
-      color: black;
-      background: #fff6f2; */
-    /* } */
 </style>

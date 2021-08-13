@@ -1,8 +1,17 @@
-import { MessageEmbed } from 'discord.js';
-import { url } from 'inspector';
+import { EmbedField, MessageEmbed } from 'discord.js';
+import { Option } from 'prelude-ts';
 import { DateTime } from 'luxon';
 import { match } from 'variant';
-import { MeetupProps } from '../db/meetups';
+import { Link, Location, MeetupProps } from '../db/meetups';
+
+
+function linkify(url: string, name?: string) : string {
+  if (!name)
+    return url;
+
+  return `[${name}](${url})`;
+}
+
 
 export default class AnnouncementEmbed {
   private readonly meetup : MeetupProps;
@@ -17,48 +26,47 @@ export default class AnnouncementEmbed {
   create() : MessageEmbed {
     const embed = new MessageEmbed ({
       title:       this.meetup.title,
-      description: this.meetup.description
+      description: this.meetup.description,
+      fields:      [
+        { name: 'Organized By', value: 's3b', inline: true }
+      ]
     });
-  
+
     const timestamp = DateTime
       .fromISO (this.meetup.timestamp)
       .toLocaleString ({ 
         weekday: 'short', month:   'short', 
         day:     '2-digit', hour:    '2-digit', minute:  '2-digit' 
       });
-  
+
     embed.addField ('Time', timestamp, true);
-    embed.addField ('Organized By', 's3b', true);
+
 
     if (this.meetup.location) {
-      const location = this.meetup.location.value;
-      const comments = this.meetup.location.comments || '';
+      let location = match (this.meetup.location, {
+        ADDRESS: ({ value }) => {
+          const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent (value)}`;
 
-      embed.addField ('Location', match (this.meetup.location, {
-        ADDRESS: _ => {
-          const encoded = encodeURIComponent (location);
-          const url = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
-
-          return `[${location}](${url})` + '\n' + comments;
+          return linkify (url, value);
         },
+        PRIVATE: ({ value }) => value,
+        VOICE:   _ => 'Voice Chat'
+      });
 
-        PRIVATE: _ => location + '\n' + comments,
+      if (this.meetup.location.comments) {
+        location += '\n' + this.meetup.location.comments;
+      }
 
-        VOICE: _ => 'Voice Chat'
-      }));
+      embed.addField ('Location', location, true);
     }
 
-    if (this.meetup.links.length) {
-      const links = this.meetup.links.map (({ name, url }) => (name)
-        ? `[${name}](${url})`
-        : url
-      );
 
-      embed.addField ('Links', [
-        ...links,
-        '[Add to Google Calendar](https://www.gmail.com "Testing a tooltip")'
-      ].join ('\n'));
-    }
+    const links = [
+      ...this.meetup.links.map (link => linkify (link.url, link.name)),
+      linkify ('Add to Google Calendar', 'https://www.google.com')
+    ];
+
+    embed.addField ('Links', links.join ('\n'), true);
 
     return embed;
   }

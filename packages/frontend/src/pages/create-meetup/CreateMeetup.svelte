@@ -1,10 +1,11 @@
 <script lang='ts'>
-  import Details from './sections/Details.svelte';
-  import Location from './sections/Location.svelte';
-  import GuestLimit from './sections/GuestLimit.svelte';
-  import Links from './sections/Links.svelte';
-  import Generate from './sections/Generate.svelte';
+  import Details from './details/Details.svelte';
+  import Location from './location/Location.svelte';
+  import Links from './links/Links.svelte';
+  import GuestLimit from './guest-limit/GuestLimit.svelte';
+  import Generate from './generate/Generate.svelte';
 </script>
+
 
 <main>
   <h1>!meetup</h1>
@@ -13,11 +14,12 @@
     <Details />
     <Location />
     <Links />
-    <GuestLimit />
+    <!-- <GuestLimit /> -->
 
-    <Generate/>
+    <Generate />
   </form>
 </main>
+
 
 <style>
   main {
@@ -32,5 +34,6 @@
     font-size: 3rem;
     font-weight: 300;
     margin-bottom: 1rem;
+    letter-spacing: 6px;
   }
 </style>

@@ -16,7 +16,7 @@ export default class Announcement {
   // because they need to listen to react events
   private static cache = new Collection<string, Announcement> ();
 
-  private meetup: MeetupsDb.Meetup;
+  private meetup: MeetupsDb.MeetupSchema;
 
   private readonly message: Message;
 
@@ -26,7 +26,7 @@ export default class Announcement {
     return this.meetup.id;
   }
 
-  private constructor(meetup: MeetupsDb.Meetup, rsvps: RsvpManager, message: Message) {
+  private constructor(meetup: MeetupsDb.MeetupSchema, rsvps: RsvpManager, message: Message) {
     this.meetup = meetup;
     this.rsvps = rsvps;
     this.message = message;
@@ -73,13 +73,20 @@ export default class Announcement {
    * @param channelId The channel the meetup should be posted in
    * @param props The options for creating a meetup
    */
-  static async post (channelId: string, props: MeetupProps) : Promise<Announcement> {
+  static async post (channelId: string, organizerId: string, props: MeetupProps) : Promise<Announcement> {
     const message = await Instance
       .fetchChannel (channelId)
       .then (c => c.send (new AnnouncementEmbed (props).embed));
 
     const rsvps = await RsvpManager.setupReactions (message);
-    const meetup = await MeetupsDb.insert (props, channelId, message.id);
+    const meetup = await MeetupsDb.insert ({
+      ...props,
+      organizerId,
+      announcement: MeetupsDb.AnnouncementState.inChannel ({
+        channelId,
+        messageId: message.id
+      })
+    });
 
     const announcement = new Announcement (meetup, rsvps, message);
     Announcement.cache.set (announcement.id, announcement);

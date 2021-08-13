@@ -1,26 +1,46 @@
-<script>
+<script lang='ts'>
   export let value = '';
   export let name = '';
+  export let label = '';
   export let placeholder = '';
   export let readonly = false;
 
-  export let rows = "4";
+  import { createEventDispatcher } from 'svelte';
+  const dispatch = createEventDispatcher();
+
+  const handleInput = (e: Event) => {
+    const value = (<HTMLInputElement>e.target).value;
+    dispatch('input', value);
+  }
+
+  export let rows = 4;
 
   export let limit = 0;
 
-  $: checkLimit = limit > 0;
+  $: hasLimit = limit > 0;
   $: charactersLeft = limit - value.length;
-  $: overLimit = checkLimit && charactersLeft <= 0;
+  $: overLimit = hasLimit && charactersLeft <= 0;
 </script>
 
-<textarea {name} {placeholder} {readonly} {rows} on:click bind:value class:error={overLimit}/>
-<div class='character-count' class:red={overLimit}>
-  {#if checkLimit && !overLimit}
-    {limit - value.length}
-  {:else if overLimit}
-    Maximum {limit} characters (<b>{Math.abs(charactersLeft)}</b> too many)
+<fieldset id={name}>
+  {#if label}
+    <label for={name} class:is-error={overLimit}>{label}</label>
   {/if}
-</div>
+
+  <textarea {name} {placeholder} {readonly} {rows} 
+    on:click 
+    on:input={handleInput} 
+    bind:value={value}
+    class:error={overLimit}/>
+
+  <div class='character-count' class:red={overLimit}>
+    {#if hasLimit && !overLimit}
+      {limit - value.length}
+    {:else if overLimit}
+      Maximum {limit} characters (<b>{Math.abs(charactersLeft)}</b> too many)
+    {/if}
+  </div>
+</fieldset>
 
 <style>
   textarea {
@@ -31,8 +51,10 @@
 
     padding: 0.75rem 0.5rem;
 
-    background: white;
-    border: 1px solid #999;
+    color: var(--text);
+    background-color: var(--background);
+    outline: none;
+    border: 1px solid var(--border);
     border-radius: 6px;
     
     resize: vertical;
@@ -46,13 +68,13 @@
   }
 
   textarea:focus {
+    background-color: var(--input-focus);
     outline-color: var(--primary);
-    background: var(--input-focus);
   }
 
   textarea.error {
     border: 1px solid var(--danger);
-    background: var(--danger-input-focus);
+    background-color: var(--danger-input-focus);
   }
 
   .character-count {

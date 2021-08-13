@@ -14,15 +14,24 @@ export type MeetupProps = {
   title: string;
   description: string;
   timestamp: string;
-  organizerId: string;
   location?: Location;
-  links: { name?: string; url: string; }[];
+  links: Link[];
 };
+
+export type Meetup = MeetupProps & {
+  organizerId: string;
+  announcement: AnnouncementState;
+}
 
 export type Location = { 
   type: 'ADDRESS' | 'PRIVATE' | 'VOICE';
   value: string;
   comments?: string 
+}
+
+export type Link = {
+  name?: string;
+  url: string;
 }
 
 export const AnnouncementState = variantModule ({
@@ -34,22 +43,20 @@ export type AnnouncementState<T extends TypeNames<typeof AnnouncementState> = un
   = VariantOf<typeof AnnouncementState, T>;
 
 
-export type Meetup = MeetupProps & {
+export type MeetupSchema = Meetup & {
   __version: 1;
   id: string;
-  announcement: AnnouncementState;
 };
 
 type AllSchemas = 
-  | Meetup 
+  | MeetupSchema 
   | Schema__V0;
 
-export async function insert(options: MeetupProps, channelId: string, messageId: string) : Promise<Meetup> {
-  const meetup: Meetup = {
+export async function insert(options: Meetup) : Promise<MeetupSchema> {
+  const meetup: MeetupSchema = {
     ...options,
-    __version:    1,
-    id:           nanoid (),
-    announcement: AnnouncementState.inChannel ({ channelId, messageId })
+    __version: 1,
+    id:        nanoid ()
   };
 
   await collection ().insertOne (meetup);
@@ -58,7 +65,7 @@ export async function insert(options: MeetupProps, channelId: string, messageId:
   return meetup;
 }
 
-export const find = (q: FilterQuery<Meetup> = {}) : Promise<Meetup[]> =>
+export const find = (q: FilterQuery<MeetupSchema> = {}) : Promise<MeetupSchema[]> =>
   collection ()
     .find (q)
     .toArray ()
@@ -72,7 +79,7 @@ export const find = (q: FilterQuery<Meetup> = {}) : Promise<Meetup[]> =>
 // --------------------------------------------------------------------------------
 
 
-const migrate = (model: AllSchemas) : Meetup => {
+const migrate = (model: AllSchemas) : MeetupSchema => {
   if (!('__version' in model)) {
     return migrations.v0 (model);
   }
@@ -81,7 +88,7 @@ const migrate = (model: AllSchemas) : Meetup => {
 }
 
 const migrations = {
-  v0: (model: Schema__V0) : Meetup => ({
+  v0: (model: Schema__V0) : MeetupSchema => ({
     __version:   1,
     id:          model.id,
     title:       model.options.name,
