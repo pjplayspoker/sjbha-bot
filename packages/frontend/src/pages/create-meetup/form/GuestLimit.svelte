@@ -2,7 +2,7 @@
 
 <!-- <script lang='ts'>
   // import { Location, state } from '../store';
-  import Legend from '../components/Legend.svelte';
+  import Legend from './Legend.svelte';
 
   let isOpen = false;
 

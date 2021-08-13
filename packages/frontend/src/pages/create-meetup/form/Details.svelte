@@ -4,7 +4,8 @@
   import Legend from '../components/Legend.svelte';
   import Textfield from '../components/Textfield.svelte';
   import Textarea from '../components/Textarea.svelte';
-  import Datetime from './Datetime.svelte';
+  
+  import StartTime from './StartTime.svelte';
 </script>
 
 <section name='details'>
@@ -17,7 +18,7 @@
       error={$errors.get('title')}
       bind:value={$store.title}/>
 
-    <Datetime 
+    <StartTime 
       error={$errors.get('date')}
       value={$store.date}
       on:input={e => store.set('date', e.detail)}/>

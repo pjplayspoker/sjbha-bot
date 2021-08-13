@@ -1,5 +1,40 @@
+<script context='module' lang='ts'>
+  import type { Store } from '../store';
+  import { DateTime } from 'luxon';
+  import YAML from 'yaml';
+
+  const buildCommand = (store: Store) : string => {
+    const output : Record<string, unknown> = {};
+
+    output.title = store.title;
+    output.date = DateTime.fromISO (store.date).toUTC ().toISO ();
+
+    if (store.description)
+      output.description = store.description;
+    
+    if (store.location) {
+      output.location_type = store.location.type;
+      output.location = store.location.value;
+
+      if (store.location.comments)
+        output.location_comments = store.location.comments;
+    }
+
+    const validLinks = Array
+      .from (store.links.values ())
+      .filter (link => link.url.length)
+      .map (({ id, ...link }) => link); // omit ID
+
+    if (validLinks.length)
+      output.links = validLinks;
+
+    return '!meetup create' + '\n' + YAML.stringify (output);
+  }
+</script>
+
+
 <script lang='ts'>
-  import { store, errors, toCommand } from '../store';
+  import { store, errors } from '../store';
   import Textarea from '../components/Textarea.svelte';
 
   let open = false;
@@ -7,8 +42,9 @@
   const openModal = () => { open = true; }
   const close = () => { open = false; }
 
-  $: command = toCommand ($store);
+  $: command = buildCommand ($store);
 </script>
+
 
 <footer name='generate' class='pad-under'>
   <button class='pad mt-2' on:click|preventDefault={openModal} disabled={!$errors.valid}>
@@ -40,6 +76,7 @@
     </div>
   </aside>
 {/if}
+
 
 <style>
   h2 {

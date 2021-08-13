@@ -1,7 +1,6 @@
 import { DateTime } from 'luxon';
 import { derived, writable } from 'svelte/store';
-import { address, voiceChat } from './location/LocationType';
-import YAML from 'yaml';
+import { address, voiceChat } from './form/LocationType';
 
 export const MAX_DESCRIPTION_LENGTH = 1200;
 
@@ -16,7 +15,7 @@ export const Location = (type: string, value = '', comments = '') : Location =>
 export type Link = { id: symbol, url: string; name: string; }
 export const Link = (url = '', name = '') : Link => ({ id: Symbol ('ID'), url, name });
   
-type Store = {
+export type Store = {
   title: string;
   date: string;
   description: string;
@@ -25,8 +24,11 @@ type Store = {
 }
 
 const state = writable<Store> ({
-  title:       '',
-  date:        DateTime.now ().toISO (),
+  title: '',
+  date:  DateTime.now ()
+    .set ({ minute: 0 })  // Looks better in the input field
+    .plus ({ hours: 1 })  // Prevents 'Meetup is in the past' error on load
+    .toISO (),
   description: '',
   location:    null,
   links:       new Map ()
@@ -81,31 +83,3 @@ export const errors = derived (state, state$ => {
     valid:   !errors.size && !linkErrors.size
   }
 });
-
-export const toCommand = (store: Store) : string => {
-  const output : Record<string, unknown> = {};
-
-  output.title = store.title;
-  output.date = DateTime.fromISO (store.date).toUTC ().toISO ();
-
-  if (store.description)
-    output.description = store.description;
-  
-  if (store.location) {
-    output.location_type = store.location.type;
-    output.location = store.location.value;
-
-    if (store.location.comments)
-      output.location_comments = store.location.comments;
-  }
-
-  const validLinks = Array
-    .from (store.links.values ())
-    .filter (link => link.url.length)
-    .map (({ id, ...link }) => link); // omit ID
-
-  if (validLinks.length)
-    output.links = validLinks;
-
-  return '!meetup create' + '\n' + YAML.stringify (output);
-}

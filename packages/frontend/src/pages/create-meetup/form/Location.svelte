@@ -3,8 +3,9 @@
   import { LocationType, address, privateAddress, voiceChat } from './LocationType';
   import {store, Location} from '../store';
 
-  import LocationTypeMenu, { openLocationTypeMenu } from './LocationTypeMenu.svelte';
   import Legend from '../components/Legend.svelte';
+
+  import LocationTypeMenu, { openLocationTypeMenu } from './LocationTypeMenu.svelte';
   import LocationFields from './LocationFields.svelte';
 
   const changeType = (type: LocationType) : void => store.set ('location', Location (type.id));

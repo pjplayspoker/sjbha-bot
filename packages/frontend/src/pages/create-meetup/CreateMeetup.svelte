@@ -1,9 +1,9 @@
 <script lang='ts'>
-  import Details from './details/Details.svelte';
-  import Location from './location/Location.svelte';
-  import Links from './links/Links.svelte';
-  import GuestLimit from './guest-limit/GuestLimit.svelte';
-  import Generate from './generate/Generate.svelte';
+  import Details from './form/Details.svelte';
+  import Location from './form/Location.svelte';
+  import Links from './form/Links.svelte';
+  import GuestLimit from './form/GenerateCommand.svelte';
+  import GenerateCommand from './form/GenerateCommand.svelte';
 </script>
 
 
@@ -16,7 +16,7 @@
     <Links />
     <!-- <GuestLimit /> -->
 
-    <Generate />
+    <GenerateCommand />
   </form>
 </main>
 
