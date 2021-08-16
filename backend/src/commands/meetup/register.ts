@@ -27,7 +27,7 @@ onMessage (
 
 // Features
 
-import Meetup from './announcement/Meetup';
+import Meetup from './core/Meetup';
 
 Promise.all ([
   events.waitFor ('bot:connect'),

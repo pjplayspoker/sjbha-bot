@@ -12,15 +12,16 @@ export const events = new EventEmitter<{
 }>();
 
 export type MeetupProps = {
+  organizerId: string;
   title: string;
   description: string;
   timestamp: string;
   location?: Location;
   links: Link[];
-};
+}
 
 export type Meetup = MeetupProps & {
-  organizerId: string;
+  id: string;
   state: MeetupState;
   announcement: AnnouncementState;
 }
@@ -28,7 +29,7 @@ export type Meetup = MeetupProps & {
 export type Location = { 
   type: 'ADDRESS' | 'PRIVATE' | 'VOICE';
   value: string;
-  comments?: string 
+  comments?: string;
 }
 
 export type Link = {
@@ -37,6 +38,7 @@ export type Link = {
 }
 
 export const AnnouncementState = variantModule ({
+  pending:       fields<{ channelId: string }> (),
   inChannel:     fields<{ channelId: string, messageId: string }> (),
   announcements: fields<{ announcementId: string; rsvpId: string; }> ()
 });
@@ -48,7 +50,9 @@ export const MeetupState = variantModule ({
   created:   {},
   cancelled: (reason: string) => ({ 
     reason,
-    cancelledOn: DateTime.now ().toUTC ().toISO ()
+    cancelledOn: DateTime.now ()
+      .toUTC ()
+      .toISO ()
   }),
   ended: {}
 });
@@ -58,7 +62,6 @@ export type MeetupState<T extends TypeNames<typeof MeetupState> = undefined>
 
 export type MeetupSchema = Meetup & {
   __version: 1;
-  id: string;
 };
 
 type AllSchemas = 

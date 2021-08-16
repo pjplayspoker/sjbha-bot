@@ -17,38 +17,21 @@ export default class RsvpManager {
   }> ();
 
   /** Emits events based on new reactions */
-  private readonly collector : ReactionCollector;
+  private collector? : ReactionCollector;
 
-  /** The emoji reactions manager for "YES" */
-  private readonly attendingReaction : MessageReaction;
+  private readonly yesEmoji: string;
 
-  /** The emoji reaction manager for "MAYBE" */
-  private readonly maybeReaction : MessageReaction;
+  private readonly maybeEmoji: string;
 
-  constructor (attending: MessageReaction, maybe: MessageReaction) {
-    this.attendingReaction = attending;
-    this.maybeReaction = maybe;
-
-    this.collector = attending.message.createReactionCollector (
-      reaction => this.isRsvpReaction (reaction),
-      { dispose: true }
-    );
-
-    this.collector.on ('collect', this.handleCollect);
-    this.collector.on ('remove', this.handleRemove);
-
-    // todo: Check if this ever gets called, and maybe handle restart
-    this.collector.on ('end', () => {
-      console.log ('#end collection');
-    });
+  constructor (yesEmoji = Emojis.RSVP, maybeEmoji = Emojis.Maybe) {
+    this.yesEmoji = yesEmoji;
+    this.maybeEmoji = maybeEmoji;
   }
   
-  get emojis() : {attending: string; maybe: string;} {
-    return {
-      attending: Emojis.RSVP,
-      maybe:     Emojis.Maybe
-    };
-  }
+  // emojis = {
+  //   attending: Emojis.RSVP,
+  //   maybe:     Emojis.Maybe
+  // };
 
   /**
    * Collection of users who've reacted that they are "Attending"
@@ -64,26 +47,52 @@ export default class RsvpManager {
     return this.guestlist.filter (u => u.isMaybe);
   }
 
-  //
-  // When fetching reactions from an old message, the users aren't loaded into the cache by default
-  // So we need to take an extra step and `fetch` the users to populate the cache
-  //
-  private async initCache() : Promise<void> {
+  /**
+   * Fetch existing reactions from an announcement or initialize them
+   * Then sets up listeners for all future reactions
+   */
+  async init(message: Message) : Promise<void> {
+    const yesReaction = 
+      message.reactions.cache.get (this.yesEmoji)
+      ?? await message.react (this.yesEmoji);
+
+    const maybeReaction =
+      message.reactions.cache.get (Emojis.Maybe)
+      ?? await message.react (Emojis.Maybe);
+
+    // When fetching reactions from an old message, the users aren't loaded into the cache by default
     await Promise.all ([
-      this.attendingReaction.users.fetch (),
-      this.maybeReaction.users.fetch ()
+      yesReaction.users.fetch (),
+      maybeReaction.users.fetch ()
     ]);
 
-    const maybes = this.maybeReaction.users.cache.filter (u => !u.bot);
-    const attending = this.attendingReaction.users.cache.filter (u => !u.bot);
+    
+    // init the cache with the existing reactions
+    const maybes = maybeReaction.users.cache.filter (u => !u.bot);
+    const attending = yesReaction.users.cache.filter (u => !u.bot);
 
     for (const [_, user] of maybes) {
-      await this.addParticipantToList (user, this.maybeReaction);
+      await this.addParticipantToList (user, maybeReaction);
     }
 
     for (const [_, user] of attending) {
-      await this.addParticipantToList (user, this.attendingReaction);
+      await this.addParticipantToList (user, yesReaction);
     }
+
+
+    // Setup a listener for future reactions
+    this.collector = message.createReactionCollector (
+      reaction => [this.yesEmoji, this.maybeEmoji].includes (reaction.emoji.name), 
+      { dispose: true }
+    );
+
+    this.collector.on ('collect', this.handleCollect);
+    this.collector.on ('remove', this.handleRemove);
+
+    // todo: Check if this ever gets called, and maybe handle restart
+    this.collector.on ('end', () => {
+      console.log ('#end collection');
+    });
   }
 
   //
@@ -100,13 +109,6 @@ export default class RsvpManager {
       const participant = new Participant (user, list);
       this.guestlist.set (user.id, participant);
     }
-  }
-
-  //
-  // Used for filtering reaction events for emojis that we don't care about
-  //
-  private isRsvpReaction(reaction: MessageReaction) : boolean {
-    return [Emojis.RSVP, Emojis.Maybe].includes (reaction.emoji.name);
   }
 
   //
@@ -129,37 +131,9 @@ export default class RsvpManager {
     }
   }
 
-  /**
-   * Create a new RSVP Manager for a new announcement.
-   * Appends the reactions
-   * 
-   * @param message The announcement to attach the reactions to
-   */
-  static async setupReactions(message: Message) : Promise<RsvpManager> {
-    const yes = await message.react (Emojis.RSVP);
-    const maybe = await message.react (Emojis.Maybe);
-
-    return new RsvpManager (yes, maybe);
-  }
-
-  /**
-   * If reactions already exist on a message, this will load them from discord
-   * 
-   * Will attempt to re-add the reactions if they're missing for some reason
-   * 
-   * @param message The announcement
-   */
-  static async fromExisting(message: Message) : Promise<RsvpManager> {
-    const yes = 
-      message.reactions.cache.get (Emojis.RSVP)
-      ?? await message.react (Emojis.RSVP);
-
-    const maybe = 
-      message.reactions.cache.get (Emojis.Maybe)
-      ?? await message.react (Emojis.Maybe);
-
-    const manager = new RsvpManager (yes, maybe);
-    await manager.initCache ();
+  static async fromMessage(message: Message) : Promise<RsvpManager> {
+    const manager = new RsvpManager ();
+    await manager.init (message);
 
     return manager;
   }

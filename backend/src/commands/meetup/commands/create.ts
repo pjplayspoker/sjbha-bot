@@ -1,8 +1,10 @@
 import { MessageHandler } from '@sjbha/app';
+import { nanoid } from 'nanoid';
 import YAML from 'yaml';
 
 import { mapOptionsToMeetup, ValidationError } from '../common/MeetupOptions';
-import Meetup from '../announcement/Meetup';
+import Meetup from '../core/Meetup';
+import * as MeetupsDb from '../db/meetups';
 
 
 /**
@@ -20,6 +22,13 @@ export const create : MessageHandler = async (message) => {
     return;
   }
 
+  await Meetup.post ({
+    ...meetup,
+    id:           nanoid (),
+    organizerId:  message.author.id,
+    state:        MeetupsDb.MeetupState.created (),
+    announcement: MeetupsDb.AnnouncementState.pending ({ channelId: message.channel.id })
+  });
+
   await message.delete ();
-  await Meetup.post (message.channel.id, message.author.id, meetup);
 }

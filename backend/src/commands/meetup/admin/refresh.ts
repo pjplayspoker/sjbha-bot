@@ -1,5 +1,5 @@
 import { MessageHandler } from '@sjbha/app';
-import Meetup from '../announcement/Meetup';
+import Meetup from '../core/Meetup';
 
 /**
  * Update the cache, in case they fall out of sync (or did some DB editing)
