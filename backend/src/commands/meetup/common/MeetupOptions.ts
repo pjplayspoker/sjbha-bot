@@ -33,10 +33,11 @@ export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | Validati
   catch (e) {
     console.error ('FAIL', e);
 
-    return new ValidationError ('YEP NOPE OKAY');
+    // todo:
+    return new ValidationError ('todo: MessageOptions failed to parse, need to include the error message');
   }
 
-  if (DateTime.fromISO (opt.date).toMillis () > DateTime.utc ().toMillis ())
+  if (DateTime.fromISO (opt.date).toMillis () <= DateTime.utc ().toMillis ())
     return new ValidationError ('Cant create a meetup that is set to the past');
     
   if (opt.description && opt.description.length > MAX_DESCRIPTION_SIZE)
@@ -73,5 +74,5 @@ export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | Validati
 }
 
 export class ValidationError {
-  constructor (public readonly message: string) {}
+  constructor (public readonly error: string) {}
 }

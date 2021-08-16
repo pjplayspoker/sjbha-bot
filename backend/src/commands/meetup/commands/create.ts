@@ -1,10 +1,8 @@
 import { MessageHandler } from '@sjbha/app';
-import { formatErrors } from '@sjbha/utils/zod';
 import YAML from 'yaml';
 
-import { Location, MeetupProps } from '../db/meetups';
-import { mapOptionsToMeetup, ValidationError } from '../core/MeetupOptions';
-import Announcement from '../core/Announcement';
+import { mapOptionsToMeetup, ValidationError } from '../common/MeetupOptions';
+import Meetup from '../announcement/Meetup';
 
 
 /**
@@ -17,9 +15,11 @@ export const create : MessageHandler = async (message) => {
   const meetup = mapOptionsToMeetup (messageOptions);
   
   if (meetup instanceof ValidationError) {
+    message.reply (meetup.error);
+
     return;
   }
 
-
-  await Announcement.post (message.channel.id, message.author.id, meetup);
+  await message.delete ();
+  await Meetup.post (message.channel.id, message.author.id, meetup);
 }

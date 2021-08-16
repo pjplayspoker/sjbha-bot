@@ -9,14 +9,15 @@ const production = {
 type Channels = typeof production;
 
 const devServer = {
-  bot1: '861815778281259008',
-  bot2: '861816839197950002'
+  bot1:  '861815778281259008',
+  bot2:  '861816839197950002',
+  admin: '876638079807529000'
 };
 
 const development: Channels = {
   strava:    devServer.bot1,
   shitpost:  devServer.bot1,
-  bot_admin: devServer.bot1
+  bot_admin: devServer.admin
 };
 
 export const channels = env.IS_PRODUCTION ? production : development;

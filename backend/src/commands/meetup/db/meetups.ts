@@ -1,8 +1,9 @@
 import { db } from '@sjbha/app';
 import { FilterQuery } from 'mongodb';
 import { nanoid } from 'nanoid';
-import { variantModule, TypeNames, VariantOf, fields } from 'variant';
+import { variantModule, TypeNames, VariantOf, fields, variantList } from 'variant';
 import { EventEmitter } from 'tsee';
+import { DateTime } from 'luxon';
 
 const collection = db<AllSchemas> ('meetups');
 
@@ -20,6 +21,7 @@ export type MeetupProps = {
 
 export type Meetup = MeetupProps & {
   organizerId: string;
+  state: MeetupState;
   announcement: AnnouncementState;
 }
 
@@ -42,6 +44,17 @@ export const AnnouncementState = variantModule ({
 export type AnnouncementState<T extends TypeNames<typeof AnnouncementState> = undefined> 
   = VariantOf<typeof AnnouncementState, T>;
 
+export const MeetupState = variantModule ({
+  created:   {},
+  cancelled: (reason: string) => ({ 
+    reason,
+    cancelledOn: DateTime.now ().toUTC ().toISO ()
+  }),
+  ended: {}
+});
+
+export type MeetupState<T extends TypeNames<typeof MeetupState> = undefined> 
+  = VariantOf<typeof MeetupState, T>;
 
 export type MeetupSchema = Meetup & {
   __version: 1;
@@ -61,6 +74,12 @@ export async function insert(options: Meetup) : Promise<MeetupSchema> {
 
   await collection ().insertOne (meetup);
   events.emit ('change');
+
+  return meetup;
+}
+
+export async function update(meetup: MeetupSchema) : Promise<MeetupSchema> {
+  await collection ().replaceOne ({ id: meetup.id }, meetup);
 
   return meetup;
 }
@@ -105,6 +124,8 @@ const migrations = {
     links: (model.options.url)
       ? [{ url: model.options.url }]
       : [],
+
+    state: MeetupState.created (),
     
     announcement: AnnouncementState.announcements ({
       announcementId: model.info_id,

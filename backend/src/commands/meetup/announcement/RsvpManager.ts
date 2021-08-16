@@ -1,15 +1,11 @@
 import { Collection, Message, MessageReaction, ReactionCollector, User } from 'discord.js';
 import { EventEmitter } from 'tsee';
-
-const Emojis = {
-  RSVP:  '✅',
-  Maybe: '🤔'
-};
+import Participant from './Participant';
+import * as Emojis from '../common/emojis';
 
 /**
  * The RsvpManager's keeps track of which users RSVP to a meetup via the reactions
  * and enforces a policy that you either Rsvp or Maybe, but not both
- * 
  */
 export default class RsvpManager {
 
@@ -38,8 +34,8 @@ export default class RsvpManager {
       { dispose: true }
     );
 
-    this.collector.on ('collect', this.onCollect);
-    this.collector.on ('remove', this.onRemove);
+    this.collector.on ('collect', this.handleCollect);
+    this.collector.on ('remove', this.handleRemove);
 
     // todo: Check if this ever gets called, and maybe handle restart
     this.collector.on ('end', () => {
@@ -78,15 +74,12 @@ export default class RsvpManager {
       this.maybeReaction.users.fetch ()
     ]);
 
-    const maybes = this.maybeReaction.users.cache
-      .filter (u => !u.bot);
+    const maybes = this.maybeReaction.users.cache.filter (u => !u.bot);
+    const attending = this.attendingReaction.users.cache.filter (u => !u.bot);
 
     for (const [_, user] of maybes) {
       await this.addParticipantToList (user, this.maybeReaction);
     }
-
-    const attending = this.attendingReaction.users.cache
-      .filter (u => !u.bot);
 
     for (const [_, user] of attending) {
       await this.addParticipantToList (user, this.attendingReaction);
@@ -94,8 +87,8 @@ export default class RsvpManager {
   }
 
   //
-  // Will switch a user from their current list to their new list
-  // if they're already RSVP'd. Otherwise, initializes a participant
+  // Initialize a participant to a guest list.
+  // Will switch a user from their current list to their new list if they're already RSVP'd on one
   //
   private async addParticipantToList(user: User, list: MessageReaction) : Promise<void> {
     const rsvp = this.guestlist.get (user.id);
@@ -119,7 +112,7 @@ export default class RsvpManager {
   //
   // Event handler for when a user adds a reaction
   //
-  private onCollect = async (reaction: MessageReaction, user: User) => {
+  private handleCollect = async (reaction: MessageReaction, user: User) => {
     await this.addParticipantToList (user, reaction);
     this.events.emit ('change');
   }
@@ -127,7 +120,7 @@ export default class RsvpManager {
   //
   // Event handler for when user removes a reaction
   //
-  private onRemove = async (reaction: MessageReaction, user: User) => {
+  private handleRemove = async (reaction: MessageReaction, user: User) => {
     const rsvp = this.guestlist.get (user.id);
 
     if (rsvp && rsvp.isInList (reaction)) {
@@ -169,66 +162,5 @@ export default class RsvpManager {
     await manager.initCache ();
 
     return manager;
-  }
-}
-
-//
-// A participant is someone who reacted to one of the two RSVP Reactions
-//
-class Participant {
-  private readonly user: User;
-
-  private reactions: MessageReaction;
-
-  constructor (user: User, list: MessageReaction) {
-    this.user = user;
-    this.reactions = list;
-  }
-
-  /**
-   * Public nickname of the user
-   */
-  get nickname() : string {
-    return this.user.username;
-  }
-
-  /**
-   * `true` if user marked the "YES" emoji on the rsvp list
-   */
-  get isAttending() : boolean {
-    return this.reactions.emoji.name === Emojis.RSVP;
-  }
-
-  /**
-   * `true` if user marked the "MAYBE" emoji on the rsvp list
-   */
-  get isMaybe() : boolean {
-    return this.reactions.emoji.name === Emojis.Maybe;
-  }
-
-  /**
-   * Check if this user belongs to a list
-   */
-  isInList (reaction: MessageReaction) : boolean {
-    return reaction.emoji.name === this.reactions.emoji.name;
-  }
-
-  /**
-   * Removes the user's previous reaction when they're signing up for a new one
-   * 
-   * @param reactions 
-   */
-  async switchTo (reactions: MessageReaction) : Promise<void> {
-    if (this.isInList (reactions)) {
-      return;
-    }
-
-    // Discord fires a "remove" event before we get the chance to set the current reaction
-    // so we'll set it first before deleting to prevent the race condition
-    const oldReaction = this.reactions;
-    this.reactions = reactions;
-
-    await oldReaction.users.remove (this.user.id);
-    oldReaction.users.cache.delete (this.user.id);
   }
 }

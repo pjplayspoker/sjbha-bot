@@ -95,11 +95,12 @@ export namespace Interaction {
      * 
      * @returns A promise that resolves with the interaction capture
      */
-    get = () : Promise<T> => new Promise ((resolve) => {
+    get = () : Promise<T | null> => new Promise ((resolve) => {
       const unsubscribe = onMessage (
         (message, next) => {
           if (message.content.toLowerCase () === 'cancel') {
             unsubscribe ();
+            resolve (null);
           }
           if (this.filterFn (message)) {
             next ();
