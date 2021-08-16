@@ -52,11 +52,7 @@ export const routes = (routes: Record<'noMatch' | 'empty' | '*' | string, Messag
   message => {
     const [, route] = message.content.split (/\s+/).map (str => str.trim ())
 
-    console.log ('ROUTE', route);
     if (route) {
-
-      console.log ('route exists, looking up in routes', routes);
-      
       if (routes[route]) {
         routes[route] (message);
 

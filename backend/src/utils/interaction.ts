@@ -10,6 +10,9 @@ import { Maybe } from 'purify-ts';
 export namespace Interaction {
   export type MapMessage<T> = (message: Message) => T;
 
+  type CaptureProps =
+    | { inReplyTo: Message };
+
   class Capture<T> {
     private mapFn : MapMessage<T>;
 
@@ -130,16 +133,26 @@ export namespace Interaction {
    * Interaction.capture(message => message.content === 'Y')
    * ```
    * 
-   * 
+   * @todo
    * @param mapfn 
    * @returns Interaction of type T
    */
+  /** @deprecated */
   export function capture(): Capture<string>;
+
+  /** @deprecated */
   export function capture<T>(mapfn: MapMessage<T>): Capture<T>;
-  export function capture<T>(mapfn?: MapMessage<T>) : Capture<T> | Capture<string> {
-    return (mapfn)
-      ? new Capture<T> (mapfn)
-      : new Capture<string> (msg => msg.content);
+  export function capture(opt: CaptureProps): Promise<string | null>;
+  export function capture<T>(mapfn?: MapMessage<T> | CaptureProps) : Capture<T> | Capture<string> | Promise<string | null> {
+    if (!mapfn)
+      return new Capture<string> (msg => msg.content);
+    
+    if ('inReplyTo' in mapfn)
+      return new Capture<string> (msg => msg.content)
+        .filter (m => m.author.id === mapfn.inReplyTo.author.id)
+        .get ();
+
+    return new Capture <T> (mapfn);
   }
 
   /**
@@ -217,5 +230,47 @@ export namespace Interaction {
     capture = () : Capture<T | null> => new Capture (message => 
       this.get (message.content).extractNullable ()
     );
+  }
+
+  export class Options<T> {
+    private readonly question: string;
+
+    private options: Option<T>[] = [];
+
+    constructor (question = '') {
+      this.question = question;
+    }
+
+    addOption = (name: string, value: T) : Options<T> => {
+      this.options.push ({ name, value });
+
+      return this;
+    }
+
+    get = (message: Message) : T | null => {
+      const index = message.content;
+      const choice = parseInt (index);
+
+      if (isNaN (choice) || !this.options[choice])
+        return null;
+
+      return this.options[choice].value;
+    }
+
+    get prompt() : string {
+      const msg = new MessageBuilder ();
+
+      this.question && msg.append (this.question);
+
+      msg.beginCode ();
+      this.options.forEach (
+        ({ name }, i) => msg.append (`${i}: ${name}`)
+      );
+      msg.endCode ();
+
+      msg.append ('Or reply \'cancel\' to exit');
+
+      return msg.toString ();
+    }
   }
 }

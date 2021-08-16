@@ -1,4 +1,4 @@
-import { onMessage, events } from '@sjbha/app';
+import { onMessage, events, router } from '@sjbha/app';
 import { routes, startsWith, restrictToChannel } from '@sjbha/utils/message-middleware';
 import { channels } from '@sjbha/config';
 
@@ -7,10 +7,11 @@ import { channels } from '@sjbha/config';
 
 import { create } from './commands/create';
 import { cancel } from './commands/cancel';
+import { edit } from './commands/edit';
 
 onMessage (
   startsWith ('!meetup'),
-  routes ({ create, cancel })
+  routes ({ create, cancel, edit })
 );
 
 
@@ -23,6 +24,13 @@ onMessage (
   restrictToChannel (channels.bot_admin),
   routes ({ refresh })
 );
+
+
+// public API
+
+import { meetup } from './routes/meetup';
+
+router.get ('/meetup/{id}', meetup);
 
 
 // Features

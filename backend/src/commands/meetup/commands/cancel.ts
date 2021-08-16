@@ -1,6 +1,7 @@
 import { MessageHandler } from '@sjbha/app';
 import Meetup from '../core/Meetup';
 import { Interaction } from '@sjbha/utils/interaction';
+import { MessageEmbed } from 'discord.js';
 
 /**
  * Cancel a meetup
@@ -44,5 +45,9 @@ export const cancel : MessageHandler = async (message) => {
   // Cancel the meetup
   await meetup.cancel (cancelReason);
 
-  message.reply (`${meetup.title} has been cancelled!`);
+  const embed = new MessageEmbed ({
+    description: `❌ **${meetup.title}** was cancelled`
+  });
+
+  message.reply (embed);
 }

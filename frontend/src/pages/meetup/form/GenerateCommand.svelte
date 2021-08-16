@@ -6,6 +6,9 @@
   const buildCommand = (store: Store) : string => {
     const output : Record<string, unknown> = {};
 
+    if (store.id)
+      output.id = store.id;
+
     output.title = store.title;
     output.date = DateTime.fromISO (store.date).toUTC ().toISO ();
 
@@ -28,7 +31,8 @@
     if (validLinks.length)
       output.links = validLinks;
 
-    return '!meetup create' + '\n' + YAML.stringify (output);
+    const instigator = (store.id) ? '!meetup edit' : '!meetup create';
+    return instigator + '\n' + YAML.stringify (output);
   }
 </script>
 

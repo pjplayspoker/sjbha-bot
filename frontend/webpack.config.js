@@ -2,6 +2,7 @@ const path = require ('path');
 const HTMLPlugin = require ('html-webpack-plugin');
 const sveltePreprocess = require("svelte-preprocess");
 const { readdirSync, statSync } = require('fs');
+const webpack = require('webpack');
 
 // This is the sub path that github uses
 const PUBLIC_PATH = '/sjbha-bot/';
@@ -10,7 +11,7 @@ const pagesRoot = path.join(__dirname, 'src', 'pages');
 const Pages = readdirSync (pagesRoot)
   .filter (file => statSync(pagesRoot +'/' + file).isDirectory());
 
-module.exports = (_, argv) => {
+module.exports = (env, argv) => {
   return {
     entry:   {
       home: './src/home/index.js',
@@ -51,6 +52,16 @@ module.exports = (_, argv) => {
     } : {},
 
     plugins: [
+      new webpack.DefinePlugin ({
+        webpack: {
+          env: {
+            __API__: (argv.mode === 'production')
+              ? JSON.stringify('https://')
+              : JSON.stringify('http://localhost:5000')
+          }
+        }
+      }),
+
       new HTMLPlugin ({
         template: 'src/index.html',
         filename: 'index.html',

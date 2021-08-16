@@ -4,7 +4,7 @@
   "description": "",
   "main": "webpack.config.js",
   "scripts": {
-    "dev": "webpack serve --open --mode=development --host 0.0.0.0",
+    "dev": "webpack serve --open --mode=development --host 0.0.0.0 --env api=http://localhost:5000",
     "build": "webpack --mode=production",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
@@ -19,6 +19,7 @@
     "prelude-ts": "^1.0.3",
     "svelte": "^3.42.1",
     "variant": "^2.1.0",
+    "wretch": "^1.7.6",
     "yaml": "^1.10.2"
   },
   "devDependencies": {

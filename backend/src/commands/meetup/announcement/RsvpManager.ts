@@ -28,11 +28,6 @@ export default class RsvpManager {
     this.maybeEmoji = maybeEmoji;
   }
   
-  // emojis = {
-  //   attending: Emojis.RSVP,
-  //   maybe:     Emojis.Maybe
-  // };
-
   /**
    * Collection of users who've reacted that they are "Attending"
    */

@@ -97,11 +97,19 @@ export async function update(meetup: Meetup) : Promise<Meetup> {
 
 export const find = (q: FilterQuery<Schema> = {}) : Promise<Meetup[]> =>
   collection ()
-    .find (q)
+    .find (q, { projection: { _id: 0 } })
     .toArray ()
     .then (meetups => meetups.map (migrate))
     .then (meetups => meetups.map (schemaToMeetup));
 
+export const findOne = async (q: FilterQuery<Schema> = {}) : Promise<Meetup | null> => {
+  const result = await collection ().findOne (q, { projection: { _id: 0 } });
+
+  if (!result)
+    return null;
+
+  return schemaToMeetup (migrate (result));
+}
 
 
 // --------------------------------------------------------------------------------

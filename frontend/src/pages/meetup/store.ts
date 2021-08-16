@@ -1,6 +1,9 @@
 import { DateTime } from 'luxon';
 import { derived, writable } from 'svelte/store';
+import { API_URL } from '../../env';
 import { address, voiceChat } from './form/LocationType';
+
+export const isEditing = writable<boolean>(false);
 
 export const MAX_DESCRIPTION_LENGTH = 1200;
 
@@ -16,6 +19,7 @@ export type Link = { id: symbol, url: string; name: string; }
 export const Link = (url = '', name = '') : Link => ({ id: Symbol ('ID'), url, name });
   
 export type Store = {
+  id?: string;
   title: string;
   date: string;
   description: string;
@@ -83,3 +87,46 @@ export const errors = derived (state, state$ => {
     valid:   !errors.size && !linkErrors.size
   }
 });
+
+
+type MeetupResponse = {
+  id: string;
+  details: {
+    title: string;
+    description: string;
+    timestamp: string;
+    location:
+      | { type: 'None' }
+      | { type: 'Address'; value: string; comments: string; }
+    links: [{ name: string; url: string; }]
+  }
+}
+
+export const fetchFromServer = async (id: string) : Promise<void> => {
+  const meetup = await fetch(`${API_URL}/meetup/${id}`)
+    .then<MeetupResponse>(r => r.json());
+
+  console.log(meetup);
+  let location : Location | null = null;
+
+  if (meetup.details.location.type !== 'None') {
+    location = Location('address', meetup.details.location.value, meetup.details.location.comments);
+  }
+
+  const linkMap = new Map <symbol, Link>();
+  meetup.details.links.forEach (data => {
+    const link = Link (data.url, data.name);
+    linkMap.set (link.id, link);
+  });
+
+  state.set ({
+    id: meetup.id,
+    title: meetup.details.title,
+    description: meetup.details.description,
+    date: meetup.details.timestamp,
+    location: location,
+    links: linkMap
+  });
+
+  isEditing.set (true);
+}

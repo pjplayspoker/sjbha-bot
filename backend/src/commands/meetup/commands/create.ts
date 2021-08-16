@@ -11,8 +11,8 @@ import * as db from '../db/meetups';
  * Creates a new meetup
  */
 export const create : MessageHandler = async (message) => {
-  const rawOptions = message.content.replace ('!meetup create', '');
-  const messageOptions = YAML.parse (rawOptions);
+  const inputText = message.content.replace ('!meetup create', '');
+  const messageOptions = YAML.parse (inputText);
 
   const options = mapOptionsToMeetup (messageOptions);
   

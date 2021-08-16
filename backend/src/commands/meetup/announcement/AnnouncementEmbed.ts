@@ -2,6 +2,7 @@ import { Collection, MessageEmbed, User } from 'discord.js';
 import { Option } from 'prelude-ts';
 import { isType, just, match } from 'variant';
 import * as db from '../db/meetups';
+import Participant from './Participant';
 
 
 const linkify = (url: string, name?: string) : string =>
@@ -10,11 +11,13 @@ const linkify = (url: string, name?: string) : string =>
 export type Reaction = {
   emoji: string;
   name: string;
-  users: Collection<string, User>;
+  users: Collection<string, Participant>;
 }
 
-export const Reaction = (emoji: string, name: string, users: Collection<string, User>): Reaction =>
+export const Reaction = (emoji: string, name: string, users: Collection<string, Participant>): Reaction =>
   ({ emoji, name, users });
+
+const embedColor = '#9b3128';
 
 /**
  * Represents the meetup announcement, and should be regarded as the source of truth for meetup data
@@ -82,7 +85,7 @@ export default class AnnouncementEmbed {
     const reactions = this.reactions.map (reaction => {
       let name = `${reaction.emoji} ${reaction.name}`;
 
-      const users = reaction.users.mapValues (u => u.username).array ();
+      const users = reaction.users.mapValues (u => u.nickname).array ();
       const value = (users.length)
         ? users.join ('\n')
         : '-';
@@ -95,8 +98,9 @@ export default class AnnouncementEmbed {
     });
 
     return new MessageEmbed ({
-      title:       meetup.details.title,
+      title:       '📅  ' + meetup.details.title,
       description: meetup.details.description,
+      color:       embedColor,
       
       fields: [
         { 
@@ -119,13 +123,9 @@ export default class AnnouncementEmbed {
 
   private cancelledAnnouncement(reason: string) : MessageEmbed {
     return new MessageEmbed ({
-      title:  '~~' + this.title + '~~',
-      fields: [
-        {
-          name:  '🚫 Meetup was cancelled',
-          value: reason
-        }
-      ]
+      title:       '📅  **CANCELLED**: ~~' + this.title + '~~',
+      color:       embedColor,
+      description: `> ${reason}`
     });
   }
 

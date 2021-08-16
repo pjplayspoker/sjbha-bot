@@ -36,7 +36,7 @@ export default class Announcement {
 
   async update (meetup: db.Meetup) : Promise<void> {
     this.meetup = meetup;
-    await this.render();
+    await this.render ();
   }
 
   /**
@@ -48,17 +48,17 @@ export default class Announcement {
   static async post (data: db.Meetup) : Promise<Announcement> {
     const state = data.announcement;
 
-    if (!isType(state, db.AnnouncementType.Pending))
-      throw new Error('Meetup is already posted and cant be posted again');
+    if (!isType (state, db.AnnouncementType.Pending))
+      throw new Error ('Meetup is already posted and cant be posted again');
 
-    const embed = AnnouncementEmbed.create(data, [
-      Reaction (Emojis.RSVP, 'Attending', new Collection()),
-      Reaction (Emojis.Maybe, 'Maybe', new Collection())
+    const embed = AnnouncementEmbed.create (data, [
+      Reaction (Emojis.RSVP, 'Attending', new Collection ()),
+      Reaction (Emojis.Maybe, 'Maybe', new Collection ())
     ]);
 
     const message = await Instance
-      .fetchChannel(state.channelId)
-      .then(c => c.send (embed));
+      .fetchChannel (state.channelId)
+      .then (c => c.send (embed));
 
     const meetup = await db.update ({
       ...data,

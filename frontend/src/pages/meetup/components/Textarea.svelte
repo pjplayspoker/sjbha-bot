@@ -4,6 +4,7 @@
   export let label = '';
   export let placeholder = '';
   export let readonly = false;
+  export let className = '';
 
   import { createEventDispatcher } from 'svelte';
   const dispatch = createEventDispatcher();
@@ -27,7 +28,7 @@
     <label for={name} class:is-error={overLimit}>{label}</label>
   {/if}
 
-  <textarea {name} {placeholder} {readonly} {rows} 
+  <textarea class={className} {name} {placeholder} {readonly} {rows} 
     on:click 
     on:input={handleInput} 
     bind:value={value}

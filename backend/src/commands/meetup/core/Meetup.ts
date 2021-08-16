@@ -1,5 +1,5 @@
 import { Collection, Message } from 'discord.js';
-import { match } from 'variant';
+import { isType, match } from 'variant';
 
 import { Instance } from '@sjbha/app';
 
@@ -9,7 +9,8 @@ import {
   AnnouncementType,
   update,
   insert,
-  find
+  find,
+  Details
 } from '../db/meetups';
 import * as Emojis from '../common/emojis';
 
@@ -60,26 +61,47 @@ export default class Meetup {
   }
 
   private async render() : Promise<void> {
-    const embed = AnnouncementEmbed.create (this.meetup, []);
+    const embed = AnnouncementEmbed.create (this.meetup, [
+      Reaction (Emojis.RSVP, 'Attending', this.rsvps.attendees),
+      Reaction (Emojis.Maybe, 'Maybe', this.rsvps.maybes)
+    ]);
 
     await this.announcement.edit (embed);
   }
 
-  async update (meetup: DbMeetup) : Promise<void> {
+  private async update (meetup: DbMeetup) : Promise<void> {
     this.meetup = meetup;
-    await this.render ();
+    await Promise.all ([update (meetup), this.render ()]);
+  }
+
+  async edit (details: Partial<Details>) : Promise<string[]> {
+    if (!this.isLive)
+      throw new Error ('Could not edit the meetup, as its already ended');
+
+    // Just gets a list of keys that have changed
+    // todo: maybe a better diff ?
+    const changes = Object.keys (details)
+      .filter (key => details[<keyof Details>key] !== this.meetup.details [<keyof Details>key])
+
+    await this.update ({
+      ...this.meetup,
+      details: {
+        ...this.meetup.details,
+        ...details
+      }
+    });
+
+    return changes;
   }
 
   async cancel (reason: string) : Promise<void> {
-    this.meetup = {
+    if (!this.isLive)
+      throw new Error ('Could not cancel the meetup, as its already ended');
+
+    await this.update ({
       ...this.meetup,
       state: MeetupState.Cancelled (reason)
-    };
-
-    await Promise.all ([
-      update (this.meetup),
-      this.render ()
-    ]);
+    });
   }
 
   /**
@@ -147,5 +169,9 @@ export default class Meetup {
 
   static find(f: (a: Meetup) => boolean) : Collection<string, Meetup> {
     return Meetup.cache.filter (meetup => f (meetup));
+  }
+
+  static get(id: string) : Meetup | undefined {
+    return Meetup.cache.find (meetup => meetup.id === id);
   }
 }
