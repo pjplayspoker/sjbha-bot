@@ -1,7 +1,6 @@
 import { db } from '@sjbha/app';
 import { FilterQuery } from 'mongodb';
-import { nanoid } from 'nanoid';
-import { variantModule, TypeNames, VariantOf, fields, variantList } from 'variant';
+import { variantModule, TypeNames, VariantOf } from 'variant';
 import { EventEmitter } from 'tsee';
 import { DateTime } from 'luxon';
 
@@ -11,88 +10,99 @@ export const events = new EventEmitter<{
   'change': () => void;
 }>();
 
-export type MeetupProps = {
-  organizerId: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  location?: Location;
-  links: Link[];
-}
+export const Location = variantModule ({
+  None:    {},
+  Address: (value: string, comments ='') => ({ value, comments }),
+  Private: (value: string, comments ='') => ({ value, comments }),
+  Voice:   {}
+});
 
-export type Meetup = MeetupProps & {
-  id: string;
-  state: MeetupState;
-  announcement: AnnouncementState;
-}
+export type Location<T extends TypeNames<typeof Location> = undefined> 
+  = VariantOf<typeof Location, T>;
 
-export type Location = { 
-  type: 'ADDRESS' | 'PRIVATE' | 'VOICE';
-  value: string;
-  comments?: string;
-}
 
 export type Link = {
   name?: string;
   url: string;
 }
 
-export const AnnouncementState = variantModule ({
-  pending:       fields<{ channelId: string }> (),
-  inChannel:     fields<{ channelId: string, messageId: string }> (),
-  announcements: fields<{ announcementId: string; rsvpId: string; }> ()
+export const Link = (name: string, url: string) : Link => ({ name, url });
+
+export type Details = {
+  organizerId: string;
+  title: string;
+  timestamp: DateTime;
+  description: string;
+  location: Location;
+  links: Link[];
+}
+
+export const Details = (props: Details) : Details => props;
+
+export const AnnouncementType = variantModule ({
+  Pending:      (channelId: string) => ({ channelId }),
+  Inline:       (channelId: string, messageId: string) => ({ channelId, messageId }),
+  Announcement: (announcementId: string, rsvpId: string) => ({ announcementId, rsvpId })
 });
 
-export type AnnouncementState<T extends TypeNames<typeof AnnouncementState> = undefined> 
-  = VariantOf<typeof AnnouncementState, T>;
+export type AnnouncementType<T extends TypeNames<typeof AnnouncementType> = undefined> 
+  = VariantOf<typeof AnnouncementType, T>;
 
 export const MeetupState = variantModule ({
-  created:   {},
-  cancelled: (reason: string) => ({ 
+  Created:   {},
+  Cancelled: (reason: string) => ({ 
     reason,
     cancelledOn: DateTime.now ()
       .toUTC ()
       .toISO ()
   }),
-  ended: {}
+  Ended: {}
 });
 
 export type MeetupState<T extends TypeNames<typeof MeetupState> = undefined> 
   = VariantOf<typeof MeetupState, T>;
 
-export type MeetupSchema = Meetup & {
-  __version: 1;
-};
+export type Meetup = {
+  id: string;
+  details: Details;
+  state: MeetupState;
+  announcement: AnnouncementType;
+}
+
+export const Meetup = (meetup: Meetup) : Meetup => meetup;
+  
+export type Schema = Meetup & { __version: 1 };
 
 type AllSchemas = 
-  | MeetupSchema 
+  | Schema 
   | Schema__V0;
 
-export async function insert(options: Meetup) : Promise<MeetupSchema> {
-  const meetup: MeetupSchema = {
-    ...options,
-    __version: 1,
-    id:        nanoid ()
-  };
+      
+const schemaToMeetup = ({ __version, ...schema }: Schema) : Meetup => schema;
 
-  await collection ().insertOne (meetup);
+const meetupToSchema = (meetup: Meetup) : Schema => ({ __version: 1, ...meetup });
+
+export async function insert(meetup: Meetup) : Promise<Meetup> {
+  await collection ().insertOne (meetupToSchema (meetup));
   events.emit ('change');
 
   return meetup;
 }
 
-export async function update(meetup: MeetupSchema) : Promise<MeetupSchema> {
-  await collection ().replaceOne ({ id: meetup.id }, meetup);
+export async function update(meetup: Meetup) : Promise<Meetup> {
+  await collection ().replaceOne ({ id: meetup.id }, meetupToSchema (meetup));
 
   return meetup;
 }
 
-export const find = (q: FilterQuery<MeetupSchema> = {}) : Promise<MeetupSchema[]> =>
+export const find = (q: FilterQuery<Schema> = {}) : Promise<Meetup[]> =>
   collection ()
     .find (q)
     .toArray ()
-    .then (meetups => meetups.map (migrate));
-    
+    .then (meetups => meetups.map (migrate))
+    .then (meetups => meetups.map (schemaToMeetup));
+
+
 
 // --------------------------------------------------------------------------------
 //
@@ -101,40 +111,35 @@ export const find = (q: FilterQuery<MeetupSchema> = {}) : Promise<MeetupSchema[]
 // --------------------------------------------------------------------------------
 
 
-const migrate = (model: AllSchemas) : MeetupSchema => {
+const migrate = (model: AllSchemas) : Schema => {
   if (!('__version' in model)) {
-    return migrations.v0 (model);
+    return migrate ({
+      __version: 1,
+      id:        model.id,
+      details:   Details ({
+        title:       model.options.name,
+        description: model.options.description,
+        organizerId: model.userID,
+        
+        // TODO: MAKE SURE TIME IS FORMATTED properly
+        timestamp: DateTime.fromISO (model.timestamp),
+        
+        location: (model.options.location)
+          ? Location.Address (model.options.location)
+          : Location.None (),
+          
+        links: (model.options.url)
+          ? [{ url: model.options.url }]
+          : [],
+      }),
+  
+      state: MeetupState.Created (),
+      
+      announcement: AnnouncementType.Announcement (model.info_id, model.rsvp_id)
+    });
   }
 
   return model;
-}
-
-const migrations = {
-  v0: (model: Schema__V0) : MeetupSchema => ({
-    __version:   1,
-    id:          model.id,
-    title:       model.options.name,
-    description: model.options.description,
-    organizerId: model.userID,
-    
-    // TODO: MAKE SURE TIME IS FORMATTED properly
-    timestamp: model.timestamp,
-    
-    location: (model.options.location)
-      ? { type: 'ADDRESS', value: model.options.location }
-      : undefined,
-      
-    links: (model.options.url)
-      ? [{ url: model.options.url }]
-      : [],
-
-    state: MeetupState.created (),
-    
-    announcement: AnnouncementState.announcements ({
-      announcementId: model.info_id,
-      rsvpId:         model.rsvp_id
-    })
-  })
 }
 
 type Schema__V0 = {

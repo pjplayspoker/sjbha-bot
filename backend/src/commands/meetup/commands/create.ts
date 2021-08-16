@@ -4,31 +4,31 @@ import YAML from 'yaml';
 
 import { mapOptionsToMeetup, ValidationError } from '../common/MeetupOptions';
 import Meetup from '../core/Meetup';
-import * as MeetupsDb from '../db/meetups';
+import * as db from '../db/meetups';
 
 
 /**
  * Creates a new meetup
  */
 export const create : MessageHandler = async (message) => {
-  const options = message.content.replace ('!meetup create', '');
-  const messageOptions = YAML.parse (options);
+  const rawOptions = message.content.replace ('!meetup create', '');
+  const messageOptions = YAML.parse (rawOptions);
 
-  const meetup = mapOptionsToMeetup (messageOptions);
+  const options = mapOptionsToMeetup (messageOptions);
   
-  if (meetup instanceof ValidationError) {
-    message.reply (meetup.error);
+  if (options instanceof ValidationError) {
+    message.reply (options.error);
 
     return;
   }
 
-  await Meetup.post ({
-    ...meetup,
+  const meetup = db.Meetup ({
     id:           nanoid (),
-    organizerId:  message.author.id,
-    state:        MeetupsDb.MeetupState.created (),
-    announcement: MeetupsDb.AnnouncementState.pending ({ channelId: message.channel.id })
+    details:      db.Details ({ ...options, organizerId: message.author.id }),
+    state:        db.MeetupState.Created (),
+    announcement: db.AnnouncementType.Pending (message.channel.id)
   });
 
+  await Meetup.post (meetup);
   await message.delete ();
 }

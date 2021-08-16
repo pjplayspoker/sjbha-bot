@@ -3,7 +3,14 @@ import { match } from 'variant';
 
 import { Instance } from '@sjbha/app';
 
-import * as MeetupsDb from '../db/meetups';
+import {
+  Meetup as DbMeetup,
+  MeetupState,
+  AnnouncementType,
+  update,
+  insert,
+  find
+} from '../db/meetups';
 import * as Emojis from '../common/emojis';
 
 import AnnouncementEmbed, { Reaction } from '../announcement/AnnouncementEmbed';
@@ -15,36 +22,36 @@ export default class Meetup {
   // because they need to listen to react events
   private static cache = new Collection<string, Meetup> ();
 
-  private meetup: MeetupsDb.MeetupSchema;
+  private meetup: DbMeetup;
 
   get id() : string {
     return this.meetup.id;
   }
 
   get organizerId() : string {
-    return this.meetup.organizerId;
+    return this.meetup.details.organizerId;
   }
 
   get isLive() : boolean {
     return match (this.meetup.state, {
-      created: _ => true,
+      Created: _ => true,
       default: _ => false
     });
   }
 
   get time() : DateTime {
-    return DateTime.fromISO (this.meetup.timestamp);
+    return this.meetup.details.timestamp;
   }
 
   get title() : string {
-    return this.meetup.title;
+    return this.meetup.details.title;
   }
 
   private readonly announcement: Message;
 
   private readonly rsvps: RsvpManager;
 
-  constructor (meetup: MeetupsDb.MeetupSchema, announcement: Message, rsvps: RsvpManager) {
+  constructor (meetup: DbMeetup, announcement: Message, rsvps: RsvpManager) {
     this.meetup = meetup;
     this.announcement = announcement;
     this.rsvps = rsvps;
@@ -58,7 +65,7 @@ export default class Meetup {
     await this.announcement.edit (embed);
   }
 
-  async update (meetup: MeetupsDb.MeetupSchema) : Promise<void> {
+  async update (meetup: DbMeetup) : Promise<void> {
     this.meetup = meetup;
     await this.render ();
   }
@@ -66,11 +73,11 @@ export default class Meetup {
   async cancel (reason: string) : Promise<void> {
     this.meetup = {
       ...this.meetup,
-      state: MeetupsDb.MeetupState.cancelled (reason)
+      state: MeetupState.Cancelled (reason)
     };
 
     await Promise.all ([
-      MeetupsDb.update (this.meetup),
+      update (this.meetup),
       this.render ()
     ]);
   }
@@ -78,14 +85,14 @@ export default class Meetup {
   /**
    * Post a new meetup to a channel
    */
-  static async post (props: MeetupsDb.Meetup) : Promise<Meetup> {
+  static async post (props: DbMeetup) : Promise<Meetup> {
     const embed = AnnouncementEmbed.create (props, [
       Reaction (Emojis.RSVP, 'Attending', new Collection ()),
       Reaction (Emojis.Maybe, 'Maybe', new Collection ())
     ]);
 
     const channelId = match (props.announcement, {
-      pending: ({ channelId }) => channelId,
+      Pending: ({ channelId }) => channelId,
       default: _ => { throw new Error ('Meetup has already been posted'); }
     });
 
@@ -93,9 +100,9 @@ export default class Meetup {
       .fetchChannel (channelId)
       .then (c => c.send (embed));
 
-    const data = await MeetupsDb.insert ({
+    const data = await insert ({
       ...props,
-      announcement: MeetupsDb.AnnouncementState.inChannel ({ channelId, messageId: announcement.id })
+      announcement: AnnouncementType.Inline (channelId, announcement.id)
     });
 
     const rsvps = await RsvpManager.fromMessage (announcement);
@@ -115,11 +122,11 @@ export default class Meetup {
    static async updateCache() : Promise<void> {
     Meetup.cache = new Collection ();
 
-    const meetups = await MeetupsDb.find ();
+    const meetups = await find ();
 
     for (const data of meetups) {
       const announcement = await match (data.announcement, {
-        inChannel: ({ messageId, channelId }) => 
+        Inline: ({ messageId, channelId }) => 
           Instance.fetchMessage (channelId, messageId),
   
         default: _ => { throw new Error ('Meetup wasnt created') }

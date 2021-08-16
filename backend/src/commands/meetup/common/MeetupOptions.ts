@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 
 import { object, string, enums, array, pattern, optional, assert } from 'superstruct';
-import { Location, MeetupProps } from '../db/meetups';
+import { Location, Details } from '../db/meetups';
 
 const MAX_DESCRIPTION_SIZE = 1600;
 
@@ -26,7 +26,7 @@ const options = object ({
   links: optional (array (link))
 });
 
-type UserMeetupOptions = Omit<MeetupProps, 'organizerId'>;
+type UserMeetupOptions = Omit<Details, 'organizerId'>;
 
 export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | ValidationError {
   try { assert (opt, options); }
@@ -37,7 +37,9 @@ export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | Validati
     return new ValidationError ('todo: MessageOptions failed to parse, need to include the error message');
   }
 
-  if (DateTime.fromISO (opt.date).toMillis () <= DateTime.utc ().toMillis ())
+  const date = DateTime.fromISO (opt.date);
+
+  if (date.toMillis () <= DateTime.utc ().toMillis ())
     return new ValidationError ('Cant create a meetup that is set to the past');
     
   if (opt.description && opt.description.length > MAX_DESCRIPTION_SIZE)
@@ -46,8 +48,9 @@ export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | Validati
   const meetup : UserMeetupOptions = {
     title:       opt.title,
     description: opt.description || '',
-    timestamp:   opt.date,
-    links:       opt.links || []
+    timestamp:   date,
+    links:       opt.links || [],
+    location:    Location.None ()
   };
 
 
@@ -58,16 +61,10 @@ export function mapOptionsToMeetup (opt: unknown) : UserMeetupOptions | Validati
     if (opt.location_comments && opt.location_comments.length > 300)
       return new ValidationError ('Location comments can only be 300 characters long');
 
-    const type : Location['type'] = 
-      (opt.location_type === 'voice')     ? 'VOICE'
-      : (opt.location_type === 'private') ? 'PRIVATE'
-      : 'ADDRESS';
-
-    meetup.location = {
-      type:     type,
-      value:    opt.location,
-      comments: opt.location_comments || ''
-    };
+    meetup.location = 
+      (opt.location_type === 'voice')     ? Location.Voice ()
+      : (opt.location_type === 'private') ? Location.Private (opt.location, opt.location_comments)
+      : Location.Address (opt.location, opt.location_comments);
   }
 
   return meetup;
