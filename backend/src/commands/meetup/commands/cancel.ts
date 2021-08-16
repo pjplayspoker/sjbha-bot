@@ -3,10 +3,11 @@ import Meetup from '../announcement/Meetup';
 import { Interaction } from '@sjbha/utils/interaction';
 
 /**
- * Creates a new meetup
+ * Cancel a meetup
  */
 export const cancel : MessageHandler = async (message) => {
-  const userMeetups = Meetup.find (a => a.organizerId === message.author.id);
+  const userMeetups = Meetup
+    .find (a => a.isLive && a.organizerId === message.author.id)
   
   // Make sure they have any meetups they can cancel
   if (!userMeetups.size) {

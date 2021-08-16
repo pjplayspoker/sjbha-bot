@@ -1,6 +1,6 @@
 import { Collection, Message, MessageEmbed } from 'discord.js';
 import { Option } from 'prelude-ts';
-import { lookup, match } from 'variant';
+import { isType, lookup, match } from 'variant';
 import { DateTime } from 'luxon';
 
 import { Instance } from '@sjbha/app';
@@ -38,6 +38,11 @@ export default class Meetup {
 
   get organizerId() : string {
     return this.meetup.organizerId;
+  }
+
+  /** Whether this meetup is still something you can plan on attending */
+  get isLive() : boolean {
+    return isType (this.meetup.state, MeetupsDb.MeetupState.created);
   }
 
   get time() : string {
@@ -160,7 +165,6 @@ export default class Meetup {
   // todo
   edit() : void { /** */ }
 
-  // todo
   async cancel(reason: string) : Promise<void> {
     const updated = await MeetupsDb.update ({
       ...this.meetup,
